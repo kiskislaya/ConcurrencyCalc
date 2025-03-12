@@ -2,15 +2,21 @@ package orchestrator
 
 import (
 	"encoding/json"
+	"kiskislaya/ConcurrencyCalc/internal/calculation"
 	"kiskislaya/ConcurrencyCalc/internal/models"
 	"net/http"
+	"sync"
 )
 
+var expressions = make(map[int]*models.Expression)
+var tasks = make(chan models.Task, 100)
+var mu sync.Mutex
+
 func RegisterHandlers() {
-	http.HandleFunc("/api/v1/calculate", calculateHandler)
-	http.HandleFunc("/api/v1/expressions", getExpressionsHandler)
-	http.HandleFunc("/internal/task", getTaskHandler)
-	http.HandleFunc("/internal/task", postTaskHandler)
+	http.HandleFunc("POST /api/v1/calculate", calculateHandler)
+	http.HandleFunc("GET /api/v1/expressions", getExpressionsHandler)
+	http.HandleFunc("GET /internal/task", getTaskHandler)
+	http.HandleFunc("POST /internal/task", postTaskHandler)
 }
 
 func calculateHandler(w http.ResponseWriter, r *http.Request) {
@@ -27,10 +33,11 @@ func calculateHandler(w http.ResponseWriter, r *http.Request) {
 		ID:     expID,
 		Expr:   req.Expression,
 		Status: "pending",
+		Result: nil,
 	}
 	expressions[expID] = exp
 
-	go processExpression(expID, req.Expression)
+	go calculation.Calc(tasks, req.Expression, expID)
 
 	w.Header().Set("Content-Type", "application/json")
 	resp := struct {

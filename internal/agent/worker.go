@@ -24,9 +24,8 @@ func Worker() {
 }
 
 func fetchTask() *models.Task {
-	resp, err := http.Get("http://localhost:8080/task")
+	resp, err := http.Get("http://localhost:8080/internal/task")
 	if err != nil {
-		log.Println(err)
 		return nil
 	}
 	if resp.StatusCode != http.StatusOK {
