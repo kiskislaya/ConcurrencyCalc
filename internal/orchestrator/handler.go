@@ -5,6 +5,8 @@ import (
 	"kiskislaya/ConcurrencyCalc/internal/calculation"
 	"kiskislaya/ConcurrencyCalc/internal/models"
 	"net/http"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -17,6 +19,8 @@ func RegisterHandlers() {
 	http.HandleFunc("GET /api/v1/expressions", getExpressionsHandler)
 	http.HandleFunc("GET /internal/task", getTaskHandler)
 	http.HandleFunc("POST /internal/task", postTaskHandler)
+	http.HandleFunc("GET /api/v1/expressions/:id", getExpressionByID)
+	http.HandleFunc("DELETE /api/v1/expressions/:id", deleteExpressionByID)
 }
 
 func calculateHandler(w http.ResponseWriter, r *http.Request) {
@@ -100,4 +104,37 @@ func postTaskHandler(w http.ResponseWriter, r *http.Request) {
 	exp.Status = "done"
 	exp.Result = &result.Result
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func getExpressionByID(w http.ResponseWriter, r *http.Request) {
+	exprID, _ := strconv.ParseInt(strings.TrimPrefix(r.URL.Path, "/api/v1/expressions/"), 10, 64)
+
+	mu.Lock()
+	expr, exists := expressions[int(exprID)]
+	mu.Unlock()
+
+	if !exists {
+		http.Error(w, "Expression not found", http.StatusNotFound)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]*models.Expression{"expression": expr})
+}
+
+func deleteExpressionByID(w http.ResponseWriter, r *http.Request) {
+	exprID, _ := strconv.ParseInt(strings.TrimPrefix(r.URL.Path, "/api/v1/expressions/"), 10, 64)
+
+	mu.Lock()
+	_, exists := expressions[int(exprID)]
+	if exists {
+		delete(expressions, int(exprID)) // Удаляем выражение
+	}
+	mu.Unlock()
+
+	if !exists {
+		http.Error(w, "Expression not found", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
