@@ -35,9 +35,12 @@
 │   ├── /agent
 │   │   ├── main.go
 │── /internal
+│   ├── /models
+│   │   ├── expression.go
+│   │   ├── task.go 
+│   │   ├── result.go
 │   ├── /orchestrator
 │   │   ├── handler.go
-│   │   ├── service.go
 │   ├── /agent
 │   │   ├── worker.go
 │── .gitignore
